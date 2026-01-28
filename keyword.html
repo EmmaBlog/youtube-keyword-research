@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Keyword Generator</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+  margin:0;
+  font-family:'Roboto', sans-serif;
+  background:#fff;
+  color:#111;
+}
+
+header {
+  background:#ff0000;
+  color:#fff;
+  padding:16px;
+  text-align:center;
+}
+
+header h3 {
+  margin:0 0 10px;
+}
+
+input, button {
+  width:90%;
+  padding:12px;
+  margin:8px 0;
+  border-radius:6px;
+  border:none;
+  font-size:14px;
+}
+
+button {
+  background:#fff;
+  color:#ff0000;
+  font-weight:500;
+  cursor:pointer;
+}
+
+#results {
+  padding:16px;
+}
+
+.keyword {
+  border-bottom:1px solid #eee;
+  padding:10px 0;
+}
+
+.badge {
+  display:inline-block;
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:4px;
+  margin-right:6px;
+}
+
+.easy {background:#d4f8d4;}
+.medium {background:#fff3cd;}
+.hard {background:#f8d7da;}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h3>YouTube Keyword Generator</h3>
+  <input id="seed" placeholder="Enter topic or title">
+  <button onclick="generateKeywords()">Generate Keywords</button>
+</header>
+
+<div id="results"></div>
+
+<script>
+const GEMINI_KEY = "AIzaSyDLMM3tos_wTvd1c-cBScDfosyRGRG9qN0";
+
+async function generateKeywords() {
+  const seed = document.getElementById("seed").value.trim();
+  if(!seed) return alert("Please enter a topic or title");
+
+  const resultsDiv = document.getElementById("results");
+  resultsDiv.innerHTML = "Generating keywords...";
+
+  try {
+    const prompt = `Generate 10 YouTube keyword ideas based on the topic: "${seed}". 
+Return a JSON array with each item having: 
+keyword, niche, difficulty (Easy, Medium, Hard).`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_KEY}`, 
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          contents:[{parts:[{text: prompt}]}]
+        })
+      }
+    );
+
+    const data = await response.json();
+    let keywords = [];
+    try {
+      keywords = JSON.parse(data.candidates[0].content.parts[0].text);
+    } catch(e){
+      resultsDiv.innerHTML = "Failed to parse Gemini response.";
+      console.error(e, data);
+      return;
+    }
+
+    // Display keywords
+    resultsDiv.innerHTML = "";
+    keywords.forEach(k=>{
+      resultsDiv.innerHTML += `
+        <div class="keyword">
+          <strong>${k.keyword}</strong><br>
+          <span class="badge ${k.difficulty.toLowerCase()}">${k.difficulty}</span>
+          <span class="badge">${k.niche}</span>
+        </div>`;
+    });
+
+  } catch(err){
+    resultsDiv.innerHTML = "Error generating keywords. Check console.";
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
